@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trade Visualizer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Trade Visualizer</h1>
+    <div class="controls">
+      <select id="symbolSelect">
+        <option value="AAPL">AAPL</option>
+        <option value="TSLA">TSLA</option>
+        <option value="BTC">BTC</option>
+        <option value="ETH">ETH</option>
+      </select>
+      <select id="timeframeSelect">
+        <option value="1D">1D</option>
+        <option value="1W">1W</option>
+        <option value="1M">1M</option>
+      </select>
+      <button id="addTradeBtn">+ Add Trade</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="chart-section">
+      <canvas id="priceChart"></canvas>
+    </section>
+
+    <section class="stats-section">
+      <div class="stat-card">
+        <span class="stat-label">Total P&amp;L</span>
+        <span class="stat-value" id="totalPnl">$0.00</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Win Rate</span>
+        <span class="stat-value" id="winRate">0%</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Total Trades</span>
+        <span class="stat-value" id="totalTrades">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Best Trade</span>
+        <span class="stat-value" id="bestTrade">$0.00</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Worst Trade</span>
+        <span class="stat-value" id="worstTrade">$0.00</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Avg Trade</span>
+        <span class="stat-value" id="avgTrade">$0.00</span>
+      </div>
+    </section>
+
+    <section class="pnl-section">
+      <h2>Cumulative P&amp;L</h2>
+      <canvas id="pnlChart"></canvas>
+    </section>
+
+    <section class="trades-section">
+      <h2>Trade Log</h2>
+      <table id="tradeTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Symbol</th>
+            <th>Side</th>
+            <th>Entry</th>
+            <th>Exit</th>
+            <th>Size</th>
+            <th>P&amp;L</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tradeBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- Add Trade Modal -->
+  <div id="tradeModal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Add Trade</h2>
+      <form id="tradeForm">
+        <label>Symbol
+          <input type="text" id="tradeSymbol" value="AAPL" required />
+        </label>
+        <label>Side
+          <select id="tradeSide">
+            <option value="LONG">LONG</option>
+            <option value="SHORT">SHORT</option>
+          </select>
+        </label>
+        <label>Entry Price
+          <input type="number" id="tradeEntry" step="0.01" required />
+        </label>
+        <label>Exit Price
+          <input type="number" id="tradeExit" step="0.01" required />
+        </label>
+        <label>Size (shares)
+          <input type="number" id="tradeSize" value="100" min="1" required />
+        </label>
+        <label>Date
+          <input type="date" id="tradeDate" required />
+        </label>
+        <div class="form-actions">
+          <button type="submit">Save Trade</button>
+          <button type="button" id="cancelBtn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
