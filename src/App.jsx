@@ -1,8 +1,9 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { INSTRUMENTS, TIMEZONES } from './utils/instruments';
 import { parseLogs } from './utils/parser';
 import { detectBreaches, findNewsNearTrades, computeStats } from './utils/analysis';
 import { fmtUsd, fmtPrice, fmtDateTime, fmtDuration, fmtTime } from './utils/formatters';
+import { toYahooTicker, resolveInterval, fetchYahooBars } from './utils/marketData';
 import TVChart from './components/TVChart';
 import TVEquity from './components/TVEquity';
 
@@ -19,6 +20,13 @@ export default function App() {
   const [newsAlerts, setNewsAlerts] = useState([]);
   const [selSym, setSelSym] = useState('ALL');
   const fileRef = useRef();
+
+  // ── Real market data ────────────────────────────────────────────
+  // realBarsCache: { [symbol]: { bars: [], interval: number, error?: string } }
+  const [realBarsCache, setRealBarsCache]   = useState({});
+  const [loadingBars,   setLoadingBars]     = useState(false);
+  const [barsError,     setBarsError]       = useState('');
+  const [intervalMin,   setIntervalMin]     = useState(1);
 
   // ── File Handling ───────────────────────────────
   const handleFile = useCallback((file) => {
@@ -40,12 +48,65 @@ export default function App() {
     reader.readAsText(file);
   }, [tz]);
 
+  // ── Fetch real bars from Yahoo Finance ─────────────────────────
+  const fetchAllBars = useCallback(async (tradeList, ivMin) => {
+    if (!tradeList.length) return;
+    setLoadingBars(true);
+    setBarsError('');
+
+    const syms = [...new Set(tradeList.map(t => t.symbol))];
+    const cache = {};
+
+    for (const sym of syms) {
+      const yahoo = toYahooTicker(sym);
+      if (!yahoo) {
+        cache[sym] = { bars: [], interval: ivMin, error: `No Yahoo ticker for ${sym}` };
+        continue;
+      }
+
+      const symTrades = tradeList.filter(t => t.symbol === sym);
+      const times = symTrades.flatMap(t => [t.entryTime, t.exitTime].filter(Boolean));
+      if (!times.length) continue;
+      const fromSec = Math.min(...times);
+      const toSec   = Math.max(...times);
+
+      const actualIv = resolveInterval(fromSec, ivMin);
+      try {
+        const bars = await fetchYahooBars(yahoo, actualIv, fromSec, toSec);
+        cache[sym] = { bars, interval: actualIv };
+      } catch (e) {
+        cache[sym] = { bars: [], interval: actualIv, error: e.message };
+      }
+    }
+
+    setRealBarsCache(cache);
+    setLoadingBars(false);
+
+    const allFailed = Object.values(cache).every(v => v.error);
+    if (allFailed && Object.keys(cache).length > 0) {
+      const firstErr = Object.values(cache)[0].error;
+      setBarsError(firstErr);
+    }
+  }, []);
+
+  // Auto-fetch whenever trades or desired interval changes
+  useEffect(() => {
+    if (trades.length) fetchAllBars(trades, intervalMin);
+  }, [trades, intervalMin, fetchAllBars]);
+
   // ── Derived State ──────────────────────────────
   const symbols = useMemo(() => ['ALL', ...new Set(trades.map(t => t.symbol))], [trades]);
   const filtered = useMemo(() => selSym === 'ALL' ? trades : trades.filter(t => t.symbol === selSym), [trades, selSym]);
   const filteredFills = useMemo(() => selSym === 'ALL' ? fills : fills.filter(f => f.symbol === selSym), [fills, selSym]);
   const breach = useMemo(() => detectBreaches(filtered, rules), [filtered, rules]);
   const stats = useMemo(() => computeStats(filtered), [filtered]);
+
+  // Determine which symbol's real bars to show on the chart.
+  // If ALL is selected, use the first actual symbol's bars.
+  const chartSym   = selSym === 'ALL' ? (symbols[1] ?? null) : selSym;
+  const chartEntry = chartSym ? realBarsCache[chartSym] : null;
+  const chartBars  = chartEntry?.bars?.length > 0 ? chartEntry.bars : null;
+  const chartIv    = chartEntry?.interval ?? intervalMin;
 
   // ── Render ─────────────────────────────────────
   return (
@@ -152,11 +213,47 @@ export default function App() {
                 <div className="card-head">
                   <div>
                     <h3>{selSym !== 'ALL' ? (INSTRUMENTS[selSym]?.name || selSym) : 'All Instruments'} — Price Chart</h3>
-                    <p className="sub">TradingView · Real fill prices · Scroll to zoom · Drag to pan · {filtered.length} trades</p>
+                    <p className="sub">
+                      {chartBars
+                        ? `Yahoo Finance · ${chartIv < 60 ? chartIv + 'm' : '1h'} bars · ${chartBars.length} candles`
+                        : 'Synthetic candles from fill data'
+                      } · Scroll to zoom · {filtered.length} trades
+                    </p>
                   </div>
-                  <span className="tag green">TICK DATA</span>
+                  <span className={`tag ${chartBars ? 'green' : 'amber'}`}>
+                    {chartBars ? 'LIVE DATA' : 'SYNTHETIC'}
+                  </span>
                 </div>
-                <TVChart trades={filtered} fills={filteredFills} breachData={breach} newsAlerts={newsAlerts} />
+
+                {/* Interval picker */}
+                <div className="interval-bar">
+                  {[1, 5, 15, 30, 60].map(m => (
+                    <button
+                      key={m}
+                      className={`iv-btn ${intervalMin === m ? 'active' : ''}`}
+                      onClick={() => setIntervalMin(m)}
+                      disabled={loadingBars}
+                    >
+                      {m < 60 ? `${m}m` : '1h'}
+                    </button>
+                  ))}
+                  {loadingBars && <span className="bars-status loading">⟳ fetching market data…</span>}
+                  {barsError && !loadingBars && (
+                    <span className="bars-status error" title={barsError}>⚠ data unavailable — using synthetic candles</span>
+                  )}
+                  {chartBars && !loadingBars && (
+                    <span className="bars-status ok">✓ {chartSym} · {chartBars.length} bars</span>
+                  )}
+                </div>
+
+                <TVChart
+                  trades={filtered}
+                  fills={filteredFills}
+                  breachData={breach}
+                  newsAlerts={newsAlerts}
+                  bars={chartBars}
+                  intervalMin={chartIv}
+                />
               </div>
 
               <div className="legend">

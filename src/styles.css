@@ -113,3 +113,80 @@ td { padding: 7px 10px; border-bottom: 1px solid var(--bdr); }
 .info-box { margin-top: 14px; background: var(--card); border: 1px solid var(--bdr); border-radius: 10px; padding: 16px; max-width: 640px; margin-left: auto; margin-right: auto; }
 .info-box h4 { font-size: 12px; font-weight: 600; color: #fff; margin-bottom: 6px; }
 .info-box p { font-size: 11px; color: var(--dim); line-height: 1.7; margin: 0; }
+
+/* ── Interval picker ─────────────────────────────────────────────── */
+.interval-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 0 12px;
+  flex-wrap: wrap;
+}
+.iv-btn {
+  background: transparent;
+  color: var(--dim);
+  border: 1px solid var(--bdr);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-family: var(--mono);
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+.iv-btn:hover:not(:disabled) { border-color: var(--blue); color: var(--text); }
+.iv-btn.active { background: var(--blue); color: #000; border-color: var(--blue); font-weight: 700; }
+.iv-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.bars-status { font-size: 11px; font-family: var(--mono); }
+.bars-status.loading { color: var(--dim); font-style: italic; }
+.bars-status.error   { color: var(--amber); }
+.bars-status.ok      { color: var(--green); margin-left: auto; }
+
+/* ── Floating chart tooltip ──────────────────────────────────────── */
+.tv-tooltip {
+  display: none;
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  background: rgba(10, 10, 26, 0.96);
+  border: 1px solid #2a2a52;
+  border-radius: 7px;
+  padding: 10px 13px;
+  min-width: 185px;
+  max-width: 230px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  line-height: 1.5;
+}
+.tt-time {
+  color: var(--dim);
+  font-size: 10px;
+  margin-bottom: 7px;
+  letter-spacing: 0.02em;
+}
+.tt-ohlc { display: flex; flex-direction: column; gap: 2px; }
+.tt-row  { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.tt-lbl  { color: var(--dim); min-width: 22px; font-size: 10px; }
+.tt-chg  { font-size: 10px; margin-left: auto; }
+.tt-divider { border-top: 1px solid #2a2a50; margin: 8px 0 6px; }
+.tt-trade { display: flex; flex-direction: column; gap: 3px; }
+.tt-trade-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+}
+.tt-side-badge {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.tt-side-badge.long  { background: rgba(0, 230, 118, 0.15); color: var(--green); }
+.tt-side-badge.short { background: rgba(255, 23, 68, 0.15);  color: var(--red); }
