@@ -147,7 +147,7 @@ export function buildCandles(fills, intervalSec = 60) {
       const gapBars = (cur.time - prev.time) / intervalSec;
 
       if (gapBars > 1 && gapBars <= 120) {
-        const steps = Math.min(Math.floor(gapBars), 60);
+        const steps = Math.min(gapBars - 1, 60);
         const drift = (cur.open - prev.close) / (steps + 1);
 
         for (let j = 1; j <= steps; j++) {
